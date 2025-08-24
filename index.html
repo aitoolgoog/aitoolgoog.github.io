@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖片轉文字 OCR 工具</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 標題 -->
+        <header class="header">
+            <h1>圖片轉文字 OCR 工具</h1>
+            <p>使用 Tesseract.js 將圖片中的文字轉換為可編輯的文字格式</p>
+        </header>
+
+        <!-- 主要功能區域 -->
+        <main class="main">
+            <!-- 上傳圖片區域 -->
+            <section class="upload-section">
+                <div class="card">
+                    <h2>上傳圖片</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="imageInput" accept="image/*,application/pdf" class="file-input">
+                        <label for="imageInput" class="upload-btn">選擇圖片或PDF</label>
+                        <p class="upload-hint">或拖放檔案至此處</p>
+                        <div class="supported-formats">
+                            支援格式：JPG, PNG, GIF, BMP, PDF
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 圖片預覽區域 -->
+            <section class="preview-section">
+                <div class="card">
+                    <h2>圖片預覽 <span id="selectionHint" style="font-size: 0.8em; color: #7f8c8d; display: none;">（滾輪縮放，拖拽移動，框選OCR區域）</span></h2>
+                    <div class="zoom-controls" id="zoomControls" style="display: none; margin-bottom: 15px; text-align: center;">
+                        <button id="zoomOut" class="zoom-btn">－</button>
+                        <span id="zoomLevel" class="zoom-indicator">100%</span>
+                        <button id="zoomIn" class="zoom-btn">＋</button>
+                        <button id="resetZoom" class="secondary-btn" style="margin-left: 15px;">重置縮放</button>
+                    </div>
+                    <div class="preview-container" id="previewContainer">
+                        <div class="preview-placeholder">
+                            <p>請選擇圖片進行預覽</p>
+                        </div>
+                    </div>
+                    <div class="selection-controls" id="selectionControls" style="display: none; margin-top: 15px; text-align: center;">
+                        <button id="clearSelection" class="secondary-btn">清除選框</button>
+                        <button id="selectAll" class="secondary-btn">選擇全圖</button>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                            已選區域: <span id="selectionInfo">無</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- OCR 控制區域 -->
+            <section class="control-section">
+                <div class="card">
+                    <div class="ocr-options">
+                        <!-- 辨識內容選擇 -->
+                        <div class="recognition-type-selection">
+                            <h3 style="margin-bottom: 20px; color: #2c3e50; font-size: 1.2em; text-align: center;">我要辨識什麼內容？</h3>
+                            <div class="recognition-grid">
+                                <label class="recognition-card" for="recognitionNumbers">
+                                    <input type="radio" name="recognitionType" id="recognitionNumbers" value="numbers" checked>
+                                    <div class="recognition-content">
+                                        <div class="recognition-icon">🔢</div>
+                                        <h4>純數字</h4>
+                                        <p>電話號碼、身分證字號<br>數字序列、編號等</p>
+                                    </div>
+                                </label>
+                                
+                                <label class="recognition-card" for="recognitionChinese">
+                                    <input type="radio" name="recognitionType" id="recognitionChinese" value="chinese">
+                                    <div class="recognition-content">
+                                        <div class="recognition-icon">🇹🇼</div>
+                                        <h4>中文文字</h4>
+                                        <p>中文文章、文件內容<br>書籍、報告等</p>
+                                    </div>
+                                </label>
+                                
+                                <label class="recognition-card" for="recognitionEnglish">
+                                    <input type="radio" name="recognitionType" id="recognitionEnglish" value="english">
+                                    <div class="recognition-content">
+                                        <div class="recognition-icon">🇺🇸</div>
+                                        <h4>英文文字</h4>
+                                        <p>英文文章、標籤<br>英文文件等</p>
+                                    </div>
+                                </label>
+                                
+                                <label class="recognition-card" for="recognitionDateTime">
+                                    <input type="radio" name="recognitionType" id="recognitionDateTime" value="datetime">
+                                    <div class="recognition-content">
+                                        <div class="recognition-icon">⏰</div>
+                                        <h4>時間日期</h4>
+                                        <p>時刻表、行事曆<br>日期、時間資訊</p>
+                                    </div>
+                                </label>
+                                
+                                <label class="recognition-card" for="recognitionMixed">
+                                    <input type="radio" name="recognitionType" id="recognitionMixed" value="mixed">
+                                    <div class="recognition-content">
+                                        <div class="recognition-icon">📄</div>
+                                        <h4>混合內容</h4>
+                                        <p>中英文混合、數字文字<br>複雜文件內容</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 隱藏的技術選項，用於內部控制 -->
+                        <div style="display: none;">
+                            <select id="ocrModeSelect">
+                                <option value="text">一般文字</option>
+                                <option value="form">表格數據</option>
+                                <option value="datetime">日期時間</option>
+                            </select>
+                            <select id="languageSelect">
+                                <option value="chi_tra+eng">繁體中文 + 英文</option>
+                                <option value="chi_tra">純繁體中文</option>
+                                <option value="chi_sim+eng">簡體中文 + 英文</option>
+                                <option value="eng">純英文</option>
+                            </select>
+                            <input type="checkbox" id="showPreprocessed" checked>
+                            <input type="checkbox" id="advancedMode" checked>
+                            <input type="checkbox" id="binaryMode">
+                            <input type="checkbox" id="removeTableLines">
+                            <input type="checkbox" id="regionBasedOCR">
+                        </div>
+                    </div>
+                    <button id="startOcrBtn" class="primary-btn" disabled>開始辨識</button>
+                    
+                    <!-- 進度條 -->
+                    <div class="progress-container" id="progressContainer" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">0%</div>
+                        <div class="progress-status" id="progressStatus">準備中...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 結果顯示區域 -->
+            <section class="result-section">
+                <div class="card">
+                    <div class="result-header">
+                        <h2>辨識結果</h2>
+                        <div class="edit-hint" id="editHint" style="display: none;">
+                            <span class="hint-icon">✏️</span>
+                            <span>您可以直接編輯下方的文字內容</span>
+                        </div>
+                    </div>
+                    <div class="result-container" id="resultContainer">
+                        <div class="result-placeholder">
+                            <p>辨識結果將顯示在此處</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按鈕 -->
+                    <div class="action-buttons" id="actionButtons" style="display: none;">
+                        <button id="copyBtn" class="secondary-btn">複製文字</button>
+                        <button id="downloadTxtBtn" class="secondary-btn">下載 TXT</button>
+                        <button id="downloadMdBtn" class="secondary-btn">下載 MD</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 頁尾 -->
+        <footer class="footer">
+            <p>使用 Tesseract.js 提供的 OCR 技術</p>
+        </footer>
+    </div>
+
+    
+    <!-- 引入 Tesseract.js with best model -->
+    <script src="https://unpkg.com/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+    
+    <!-- 主要 JavaScript 文件 -->
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
